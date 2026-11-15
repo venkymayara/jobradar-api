@@ -1,0 +1,1 @@
+package com.jobradar.taxonomy.role; import jakarta.validation.constraints.*; public record RoleRequest(@NotBlank @Size(max=120) String roleName,@Size(max=140) String slug,@NotNull Integer categoryId){}

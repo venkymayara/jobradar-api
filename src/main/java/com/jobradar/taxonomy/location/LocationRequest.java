@@ -1,0 +1,1 @@
+package com.jobradar.taxonomy.location;import jakarta.validation.constraints.*;public record LocationRequest(@NotBlank @Size(max=100)String city,@Size(max=100)String state,@NotBlank @Size(max=100)String country){}

@@ -1,0 +1,1 @@
+package com.jobradar.taxonomy.skill;import java.time.Instant;public record SkillDto(Integer skillId,String skillName,String slug,int opportunityCount,boolean active,Instant createdAt,Instant updatedAt){static SkillDto from(SkillEntity e){return new SkillDto(e.getId(),e.getName(),e.getSlug(),e.getOpportunityCount(),e.isActive(),e.getCreatedAt(),e.getUpdatedAt());}}
