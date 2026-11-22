@@ -1,5 +1,5 @@
 FROM node:24-bookworm-slim AS frontend
-ARG UI_REVISION=bceea5f87cdb081f245678c233f279604dfb129e
+ARG UI_REVISION=688a95b49712089d59a3df1f0fec9ddee66a768b
 WORKDIR /ui
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
