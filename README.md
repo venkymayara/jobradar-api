@@ -27,7 +27,29 @@ Phase 3 adds authentication, JWT security, and refresh token rotation. Public op
 4. Run `mvn spring-boot:run` from this folder.
 5. Check `http://localhost:8081/actuator/health`.
 
-For production, set `SPRING_PROFILES_ACTIVE=prod` and provide `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` (at least 32 random bytes), and `CORS_ALLOWED_ORIGINS` through the deployment environment or secret manager. Production refresh cookies require HTTPS and use `Secure; HttpOnly; SameSite=Strict`.
+## PostgreSQL on Neon
+
+From the linked workspace, run `neon deploy` to populate `.env.local`. Start the API with
+`SPRING_PROFILES_ACTIVE=prod` and a securely generated `JWT_SECRET` of at least 32 bytes.
+Spring Boot reads `DATABASE_URL` for application queries and `DATABASE_URL_UNPOOLED` for
+Flyway migrations. Use `PORT` for the hosting platform port. For a frontend served from
+another origin, also set `CORS_ALLOWED_ORIGINS` to the frontend URL. Production refresh
+cookies require HTTPS.
+
+For the one-time SQL Server copy, start the PostgreSQL API once to apply Flyway, then
+run the following before accepting production writes. The source JDBC URL defaults to
+local `ven_db` with Windows integrated authentication. Set up the Windows JDBC DLL
+from the local setup steps above. The copy checks row counts, preserves account data
+and valid role assignments, and starts all sessions afresh.
+
+```powershell
+mvn dependency:build-classpath "-Dmdep.outputFile=target/jdbc-classpath.txt"
+java -cp (Get-Content target/jdbc-classpath.txt -Raw).Trim() scripts/CopySqlServerRecords.java ../.env.local
+```
+
+The Dockerfile packages Angular and Spring Boot in one web service. On Render, select
+Docker and configure `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, and `JWT_SECRET` as
+service secrets. The health check path is `/actuator/health`.
 
 No production credentials are stored in this repository. The V1 migration preserves existing users and role assignments, seeds `AppRoles`, adds profile metadata, and creates the refresh token hash table. Existing orphan rows in `user_roles` are retained; the user relationship constraint is added without validating those historical rows.
 

@@ -11,10 +11,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SkillRepository extends JpaRepository<SkillEntity, Integer> {
-    @Query("select s from SkillEntity s where s.active=true and (:q is null or lower(s.name) like lower(concat('%',:q,'%')))")
+    @Query("select s from SkillEntity s where s.active=true and (:q is null or lower(s.name) like lower(concat('%',cast(:q as String),'%')))")
     Page<SkillEntity> browse(@Param("q") String q, Pageable pageable);
 
-    @Query("select s from SkillEntity s where (:q is null or lower(s.name) like lower(concat('%',:q,'%'))) ")
+    @Query("select s from SkillEntity s where (:q is null or lower(s.name) like lower(concat('%',cast(:q as String),'%'))) ")
     Page<SkillEntity> adminBrowse(@Param("q") String q, Pageable pageable);
 
     @Query(value = """
@@ -24,7 +24,7 @@ public interface SkillRepository extends JpaRepository<SkillEntity, Integer> {
         LEFT JOIN dbo.OpportunitySkills skill_link ON skill_link.skill_id = s.id
         LEFT JOIN dbo.Opportunities o ON o.id = skill_link.opportunity_id AND
         """ + OpportunityRepository.PUBLIC_WINDOW_SQL + """
-        WHERE s.is_active = 1
+        WHERE CAST(s.is_active AS integer) = 1
         GROUP BY s.id, s.name, s.slug
         ORDER BY COUNT(DISTINCT o.id) DESC, s.name ASC, s.id ASC
         """, nativeQuery = true)

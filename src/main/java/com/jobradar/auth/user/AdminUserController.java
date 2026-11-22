@@ -32,7 +32,8 @@ public class AdminUserController {
     public ApiResponse<PaginatedResponse<AdminUser>> list(
             @RequestParam(defaultValue = "") @Size(max = 100) String search,
             @Valid @ModelAttribute PaginationParameters pagination) {
-        var page = users.findAdminDirectoryUsers(search.strip(), PageRequest.of(pagination.getPage(), pagination.getSize()))
+        String literalSearch = search.strip().replace("!", "!!").replace("%", "!%").replace("_", "!_").replace("[", "![");
+        var page = users.findAdminDirectoryUsers(literalSearch, PageRequest.of(pagination.getPage(), pagination.getSize()))
                 .map(user -> new AdminUser(user.getUserId(), user.getDisplayName(), user.getUsername(),
                         user.getAdministrator(), user.getModerator(), user.getSuperAdministrator()));
         return ApiResponse.success("Users retrieved successfully", PaginatedResponse.from(page));

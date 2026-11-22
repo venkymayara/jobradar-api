@@ -27,8 +27,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Integer> {
 
     String ADMIN_DIRECTORY_FILTER = """
             FROM dbo.admin_user_directory
-            WHERE :search = '' OR CHARINDEX(LOWER(:search), LOWER(display_name)) > 0
-                OR CHARINDEX(LOWER(:search), LOWER(username)) > 0
+            WHERE :search = '' OR LOWER(display_name) LIKE CONCAT('%', LOWER(:search), '%') ESCAPE '!'
+                OR LOWER(username) LIKE CONCAT('%', LOWER(:search), '%') ESCAPE '!'
             """;
 
     @Query(value = """
