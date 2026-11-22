@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "\"OpportunityReports\"")
+@Table(name = "OpportunityReports", schema = "dbo")
 public class OpportunityReportEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -37,6 +37,7 @@ public class OpportunityReportEntity {
     }
     public Integer getId() { return id; }
     public OpportunityEntity getOpportunity() { return opportunity; }
+    public UserEntity getReporter() { return reporter; }
     public OpportunityReportReason getReason() { return reason; }
     public String getDetails() { return details; }
     public OpportunityReportStatus getStatus() { return status; }

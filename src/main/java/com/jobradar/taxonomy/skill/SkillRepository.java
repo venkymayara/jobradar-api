@@ -1,5 +1,8 @@
 package com.jobradar.taxonomy.skill;
 
+import com.jobradar.opportunity.OpportunityRepository;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,12 +22,14 @@ public interface SkillRepository extends JpaRepository<SkillEntity, Integer> {
                COUNT(DISTINCT o.id) AS opportunityCount
         FROM dbo.skills s
         LEFT JOIN dbo.OpportunitySkills skill_link ON skill_link.skill_id = s.id
-        LEFT JOIN dbo.Opportunities o ON o.id = skill_link.opportunity_id AND o.status = :status
+        LEFT JOIN dbo.Opportunities o ON o.id = skill_link.opportunity_id AND
+        """ + OpportunityRepository.PUBLIC_WINDOW_SQL + """
         WHERE s.is_active = 1
         GROUP BY s.id, s.name, s.slug
-        ORDER BY COUNT(DISTINCT o.id) DESC, s.name ASC
+        ORDER BY COUNT(DISTINCT o.id) DESC, s.name ASC, s.id ASC
         """, nativeQuery = true)
-    List<HomepageSkillProjection> findHomepagePopular(@Param("status") String status, Pageable pageable);
+    List<HomepageSkillProjection> findHomepagePopular(@Param("status") String status,
+            @Param("today") LocalDate today, @Param("now") Instant now, Pageable pageable);
 
     boolean existsByNameIgnoreCase(String name);
     boolean existsBySlugIgnoreCase(String slug);

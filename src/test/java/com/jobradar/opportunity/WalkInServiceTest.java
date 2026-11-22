@@ -79,14 +79,15 @@ class WalkInServiceTest {
     }
 
     @Test void homepageUpcomingWalkInsAreBoundedAndRequireFutureActiveDrives() {
+        LocalDate today = LocalDate.now(clock);
         when(opportunities.findUpcomingWalkInsForHomepage(eq(OpportunityStatus.ACTIVE), eq(OpportunityType.WALK_IN),
-                eq(clock.instant()), any(Pageable.class))).thenReturn(List.of());
+                eq(today), eq(clock.instant()), any(Pageable.class))).thenReturn(List.of());
 
-        assertTrue(service.upcomingForHomepage().isEmpty());
+        assertTrue(service.upcomingForHomepage(today, clock.instant()).isEmpty());
 
         var page = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(opportunities).findUpcomingWalkInsForHomepage(eq(OpportunityStatus.ACTIVE), eq(OpportunityType.WALK_IN),
-                eq(clock.instant()), page.capture());
+                eq(today), eq(clock.instant()), page.capture());
         assertEquals(6, page.getValue().getPageSize());
     }
 

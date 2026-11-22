@@ -14,7 +14,7 @@ import java.time.Instant;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "\"SavedOpportunities\"")
+@Table(name = "SavedOpportunities", schema = "dbo")
 public class SavedOpportunityEntity {
     @EmbeddedId
     private SavedOpportunityId id;

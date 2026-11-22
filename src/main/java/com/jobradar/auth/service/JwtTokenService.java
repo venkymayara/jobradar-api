@@ -32,12 +32,16 @@ public class JwtTokenService {
 
     public String createAccessToken(UserEntity user) {
         Instant now = clock.instant();
+        return createAccessToken(user, now, now.plus(accessTokenTtl));
+    }
+
+    public String createAccessToken(UserEntity user, Instant issuedAt, Instant expiresAt) {
         List<String> roles = user.getRoles().stream().map(role -> role.getRole()).sorted().toList();
         String fullName = user.getFullName() == null ? "" : user.getFullName();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer(issuer)
-                .issuedAt(now)
-                .expiresAt(now.plus(accessTokenTtl))
+                .issuedAt(issuedAt)
+                .expiresAt(expiresAt)
                 .subject(user.getEmail())
                 .claim("userId", user.getId())
                 .claim("fullName", fullName)

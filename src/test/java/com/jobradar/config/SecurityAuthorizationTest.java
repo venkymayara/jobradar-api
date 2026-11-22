@@ -6,10 +6,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jobradar.security.ApiAccessDeniedHandler;
 import com.jobradar.security.ApiAuthenticationEntryPoint;
+import com.jobradar.auth.user.AdminUserController;
+import com.jobradar.auth.user.AdminRoleService;
+import com.jobradar.auth.user.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +32,44 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-@WebMvcTest(controllers = SecurityAuthorizationTest.ProbeController.class)
+@WebMvcTest(controllers = {SecurityAuthorizationTest.ProbeController.class, AdminUserController.class})
 @Import({SecurityConfig.class, CorsConfig.class, ApiAuthenticationEntryPoint.class, ApiAccessDeniedHandler.class,
         SecurityAuthorizationTest.ProbeController.class})
 class SecurityAuthorizationTest {
     @Autowired private MockMvc mockMvc;
+    @MockitoBean private UserRepository users;
+    @MockitoBean private AdminRoleService adminRoles;
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void regularAdminCannotChangeAdminAccess() throws Exception {
+        mockMvc.perform(put("/api/v1/admin/users/12/admin-permission").with(csrf())
+                .contentType("application/json").content("{\"enabled\":true}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(adminRoles);
+    }
+
+    @Test
+    void adminDirectoryRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/users")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    @WithMockUser(roles = "MODERATOR")
+    void moderatorCannotReadAdminDirectory() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/users")).andExpect(status().isForbidden());
+        verifyNoInteractions(users);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void administratorCanSearchTheDirectory() throws Exception {
+        when(users.findAdminDirectoryUsers(eq("Example"), any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/admin/users").param("search", " Example "))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").isArray());
+    }
 
     @Test
     void protectedProfileRequiresAuthentication() throws Exception {

@@ -16,6 +16,10 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
     @Query("select token from RefreshTokenEntity token join fetch token.user where token.tokenHash = :hash")
     Optional<RefreshTokenEntity> findForUpdateByHash(@Param("hash") String hash);
 
+    @Query("select min(token.createdAt) from RefreshTokenEntity token where token.user.id = :userId "
+            + "and token.tokenFamilyId = :familyId")
+    Instant findFamilyStartedAt(@Param("userId") int userId, @Param("familyId") UUID familyId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update RefreshTokenEntity token set token.revokedAt = :revokedAt "
             + "where token.tokenFamilyId = :familyId and token.revokedAt is null")

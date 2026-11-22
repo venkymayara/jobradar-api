@@ -36,6 +36,11 @@ final class OpportunitySpecifications {
                         cb.equal(cb.lower(role.get("slug")), filters.role().toLowerCase(Locale.ROOT))));
                 query.distinct(true);
             }
+            if (filters.categoryId() != null) {
+                Join<Object, Object> role = root.join("roles");
+                predicates.add(cb.equal(role.get("category").get("id"), filters.categoryId()));
+                query.distinct(true);
+            }
             for (String requestedSkill : filters.skills()) {
                 String name = requestedSkill.trim().toLowerCase(Locale.ROOT);
                 Subquery<Long> skillMatch = query.subquery(Long.class);

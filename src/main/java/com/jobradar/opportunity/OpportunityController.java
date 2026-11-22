@@ -5,6 +5,7 @@ import com.jobradar.common.api.PaginatedResponse;
 import com.jobradar.common.pagination.PaginationParameters;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
@@ -42,6 +43,7 @@ public class OpportunityController {
     public ApiResponse<PaginatedResponse<OpportunityDto>> search(
             @RequestParam(required = false) @Size(max = 200) String keyword,
             @RequestParam(required = false) @Size(max = 120) String role,
+            @RequestParam(required = false) @Min(1) Integer categoryId,
             @RequestParam(required = false) @Size(max = 20) List<@Size(max = 120) String> skills,
             @RequestParam(required = false) @Size(max = 160) String company,
             @RequestParam(required = false) @Size(max = 200) String location,
@@ -61,7 +63,7 @@ public class OpportunityController {
         pagination.setPage(page); pagination.setSize(size);
         if (sort != null && !sort.isBlank()) pagination.setSort(sort);
         if (direction != null && !direction.isBlank()) pagination.setDirection(direction);
-        return ApiResponse.success("Opportunities retrieved successfully", opportunities.search(keyword, role, skills,
+        return ApiResponse.success("Opportunities retrieved successfully", opportunities.search(keyword, role, categoryId, skills,
                 company, location, minExperience, maxExperience, workMode, employmentType, opportunityType,
                 minSalary, maxSalary, postedWithin, pagination));
     }
@@ -85,6 +87,31 @@ public class OpportunityController {
     @GetMapping("/admin/opportunities")
     public ApiResponse<PaginatedResponse<OpportunityDto>> adminList(@Valid @ModelAttribute PaginationParameters pagination) {
         return ApiResponse.success("Opportunities retrieved successfully", opportunities.reviewQueue(pagination, true));
+    }
+
+    @GetMapping("/admin/opportunities/review-queue")
+    public ApiResponse<PaginatedResponse<OpportunityDto>> adminReviewQueue(
+            @Valid @ModelAttribute PaginationParameters pagination,
+            @RequestParam(defaultValue = "PENDING") OpportunityStatus status) {
+        return ApiResponse.success("Review queue retrieved successfully", opportunities.adminReviewQueue(pagination, status));
+    }
+
+    @GetMapping("/admin/opportunities/{id}")
+    public ApiResponse<OpportunityService.ReviewDetails> reviewDetails(@PathVariable @Min(1) Integer id,
+            Authentication administrator) {
+        return ApiResponse.success("Submission retrieved successfully", opportunities.getReview(id, administrator));
+    }
+
+    @PatchMapping("/admin/opportunities/{id}/review")
+    public ApiResponse<OpportunityDto> reviewSubmission(@PathVariable @Min(1) Integer id,
+            @Valid @RequestBody OpportunityReviewRequest request, Authentication administrator) {
+        return ApiResponse.success("Review recorded", opportunities.review(id, request.decision(), request.note(), administrator));
+    }
+
+    @PostMapping("/opportunities/{id}/review-response")
+    public ApiResponse<OpportunityDto> respondToReview(@PathVariable @Min(1) Integer id,
+            @Valid @RequestBody OpportunityReviewResponse request, Authentication authentication) {
+        return ApiResponse.success("Details sent for review", opportunities.respondToReview(id, request.message(), authentication));
     }
 
     @PostMapping("/opportunities")
@@ -153,6 +180,8 @@ public class OpportunityController {
     }
 
     public record StatusRequest(@NotNull OpportunityStatus status) {}
+    public record OpportunityReviewRequest(@NotNull OpportunityReviewDecision decision, @Size(max = 1000) String note) {}
+    public record OpportunityReviewResponse(@NotBlank @Size(max = 1000) String message) {}
     public record VerificationRequest(@NotNull Boolean verified) {}
     public record ReportReviewRequest(@NotNull OpportunityReportStatus status) {}
 }

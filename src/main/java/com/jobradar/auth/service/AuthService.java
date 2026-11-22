@@ -97,18 +97,25 @@ public class AuthService {
             refreshTokenRepository.revokeActiveFamily(existing.getTokenFamilyId(), now);
             throw new UnauthorizedException("Refresh token reuse detected; please sign in again");
         }
-        if (!existing.getExpiresAt().isAfter(now)) {
+        Instant expiresAt = existing.getExpiresAt();
+        // Older sliding sessions must use their first sign-in under the fixed lifetime.
+        if (expiresAt.isAfter(existing.getCreatedAt().plus(refreshTokenTtl))) {
+            expiresAt = refreshTokenRepository
+                    .findFamilyStartedAt(existing.getUser().getId(), existing.getTokenFamilyId())
+                    .plus(refreshTokenTtl);
+        }
+        if (!expiresAt.isAfter(now)) {
             refreshTokenRepository.revokeActiveFamily(existing.getTokenFamilyId(), now);
             throw new UnauthorizedException(INVALID_REFRESH_TOKEN);
         }
 
         String replacementValue = newRefreshTokenValue();
         RefreshTokenEntity replacement = new RefreshTokenEntity(existing.getUser(), hashToken(replacementValue),
-                existing.getTokenFamilyId(), now, now.plus(refreshTokenTtl));
+                existing.getTokenFamilyId(), now, expiresAt);
         replacement = refreshTokenRepository.saveAndFlush(replacement);
         existing.revoke(now, replacement.getId());
         refreshTokenRepository.save(existing);
-        return issuedSession(existing.getUser(), replacementValue);
+        return issuedSession(existing.getUser(), replacementValue, now, expiresAt);
     }
 
     @Transactional(noRollbackFor = UnauthorizedException.class)
@@ -127,15 +134,18 @@ public class AuthService {
     private IssuedAuthSession issueSession(UserEntity user, UUID familyId) {
         String refreshToken = newRefreshTokenValue();
         Instant now = clock.instant();
+        Instant expiresAt = now.plus(refreshTokenTtl);
         refreshTokenRepository.save(new RefreshTokenEntity(user, hashToken(refreshToken),
-                familyId, now, now.plus(refreshTokenTtl)));
-        return issuedSession(user, refreshToken);
+                familyId, now, expiresAt));
+        return issuedSession(user, refreshToken, now, expiresAt);
     }
 
-    private IssuedAuthSession issuedSession(UserEntity user, String refreshToken) {
-        AuthSession session = AuthSession.bearer(jwtTokenService.createAccessToken(user),
-                jwtTokenService.accessTokenExpiresInSeconds(), UserResponse.from(user));
-        return new IssuedAuthSession(session, refreshToken, refreshTokenTtl);
+    private IssuedAuthSession issuedSession(UserEntity user, String refreshToken, Instant now, Instant expiresAt) {
+        Duration remaining = Duration.between(now, expiresAt);
+        long accessSeconds = Math.min(jwtTokenService.accessTokenExpiresInSeconds(), remaining.toSeconds());
+        AuthSession session = AuthSession.bearer(jwtTokenService.createAccessToken(user, now, now.plusSeconds(accessSeconds)),
+                accessSeconds, remaining.toSeconds(), UserResponse.from(user));
+        return new IssuedAuthSession(session, refreshToken, remaining);
     }
 
     private String newRefreshTokenValue() {

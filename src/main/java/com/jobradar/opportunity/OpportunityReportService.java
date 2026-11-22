@@ -17,6 +17,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.jobradar.notification.NotificationService;
+import com.jobradar.notification.NotificationType;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,10 +28,16 @@ public class OpportunityReportService {
     private final OpportunityRepository opportunities;
     private final UserRepository users;
     private final Clock clock;
+    private final NotificationService notifications;
 
+    @Autowired
+    public OpportunityReportService(OpportunityReportRepository reports, OpportunityRepository opportunities,
+            UserRepository users, Clock clock, NotificationService notifications) {
+        this.reports = reports; this.opportunities = opportunities; this.users = users; this.clock = clock; this.notifications = notifications;
+    }
     public OpportunityReportService(OpportunityReportRepository reports, OpportunityRepository opportunities,
             UserRepository users, Clock clock) {
-        this.reports = reports; this.opportunities = opportunities; this.users = users; this.clock = clock;
+        this(reports, opportunities, users, clock, null);
     }
 
     @Transactional
@@ -75,12 +84,13 @@ public class OpportunityReportService {
         if (report.getStatus() != OpportunityReportStatus.OPEN)
             throw new ConflictException("This report has already been reviewed");
         report.review(next, reviewer.getName());
+        if (notifications != null) notifications.create(report.getReporter(), "Report reviewed", "Your opportunity report was marked " + next.name().toLowerCase(java.util.Locale.ROOT) + ".", NotificationType.REPORT_UPDATED, report.getOpportunity().getId());
         return OpportunityReportDto.from(report);
     }
 
     private void requireModerator(Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || auth.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority).noneMatch(Set.of("ROLE_MODERATOR", "ROLE_ADMIN")::contains))
+                .map(GrantedAuthority::getAuthority).noneMatch(Set.of("ROLE_MODERATOR", "ROLE_ADMIN", "ROLE_SUPER_ADMIN")::contains))
             throw new ForbiddenException("Only moderators or administrators can access moderation reports");
     }
 }

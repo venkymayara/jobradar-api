@@ -18,15 +18,23 @@ public class OpportunityStatusHistoryEntity {
     private String changedBy;
     @Column(name = "changed_at", nullable = false)
     private Instant changedAt;
+    @Column(name = "review_note", length = 1000, columnDefinition = "nvarchar(1000)")
+    private String reviewNote;
 
     protected OpportunityStatusHistoryEntity() {}
     public OpportunityStatusHistoryEntity(OpportunityEntity opportunity, OpportunityStatus previousStatus,
             OpportunityStatus newStatus, String changedBy) {
+        this(opportunity, previousStatus, newStatus, changedBy, null);
+    }
+    public OpportunityStatusHistoryEntity(OpportunityEntity opportunity, OpportunityStatus previousStatus,
+            OpportunityStatus newStatus, String changedBy, String reviewNote) {
         this.opportunity = opportunity; this.previousStatus = previousStatus;
         this.newStatus = newStatus; this.changedBy = changedBy; this.changedAt = Instant.now();
+        this.reviewNote = reviewNote;
     }
     public OpportunityStatus getPreviousStatus() { return previousStatus; }
     public OpportunityStatus getNewStatus() { return newStatus; }
     public String getChangedBy() { return changedBy; }
     public Instant getChangedAt() { return changedAt; }
+    public String getReviewNote() { return reviewNote; }
 }

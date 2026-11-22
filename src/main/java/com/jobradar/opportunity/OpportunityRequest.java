@@ -10,7 +10,7 @@ import java.util.Set;
 
 public record OpportunityRequest(
         @NotBlank @Size(max = 200) String title,
-        @NotNull Integer companyId,
+        Integer companyId,
         @NotNull Integer locationId,
         @NotNull WorkMode workMode,
         @NotNull EmploymentType employmentType,
@@ -35,7 +35,21 @@ public record OpportunityRequest(
         @Email @Size(max = 254) String contactEmail,
         @Size(max = 2000) String instructions,
         @NotEmpty Set<@NotNull Integer> roleIds,
-        Set<@NotNull Integer> skillIds) {
+        Set<@NotNull Integer> skillIds,
+        @Size(max = 160) String companyName) {
+
+    public OpportunityRequest(String title, Integer companyId, Integer locationId, WorkMode workMode,
+            EmploymentType employmentType, int minExperience, int maxExperience, BigDecimal minSalary,
+            BigDecimal maxSalary, String currencyCode, OpportunityType opportunityType, String description,
+            String applicationUrl, String sourceUrl, LocalDate applicationDeadline, LocalDate driveDate,
+            LocalTime driveStartTime, LocalTime driveEndTime, String venue, String venueAddress,
+            String timeZoneId, String contactName, String contactPhone, String contactEmail, String instructions,
+            Set<@NotNull Integer> roleIds, Set<@NotNull Integer> skillIds) {
+        this(title, companyId, locationId, workMode, employmentType, minExperience, maxExperience, minSalary,
+                maxSalary, currencyCode, opportunityType, description, applicationUrl, sourceUrl,
+                applicationDeadline, driveDate, driveStartTime, driveEndTime, venue, venueAddress, timeZoneId,
+                contactName, contactPhone, contactEmail, instructions, roleIds, skillIds, null);
+    }
 
     @AssertTrue(message = "Experience and salary ranges must be ordered; walk-in drives require valid date, time, and venue")
     public boolean isRangesValid() {
@@ -47,7 +61,8 @@ public record OpportunityRequest(
                 && timeZoneId != null && !timeZoneId.isBlank() && sourceUrl != null && !sourceUrl.isBlank()
                 && (contactPhone != null && !contactPhone.isBlank() || contactEmail != null && !contactEmail.isBlank())
                 && validZone(timeZoneId);
-        return opportunityType != null && experience && salary && walkIn;
+        boolean company = companyId != null && companyId > 0 || companyName != null && !companyName.isBlank();
+        return company && opportunityType != null && experience && salary && walkIn;
     }
 
     private boolean validZone(String value) {

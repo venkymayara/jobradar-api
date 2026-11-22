@@ -16,6 +16,14 @@ public record WalkInDto(Integer opportunityId, String title, Integer companyId, 
         String contactName, String contactPhone, String contactEmail, String instructions,
         String sourceUrl, OpportunityStatus status, boolean verified) {
     public static WalkInDto from(OpportunityEntity opportunity) {
+        return from(opportunity, true);
+    }
+
+    static WalkInDto publicPreview(OpportunityEntity opportunity) {
+        return from(opportunity, false);
+    }
+
+    private static WalkInDto from(OpportunityEntity opportunity, boolean includeContact) {
         WalkInDetailsEntity drive = opportunity.getWalkInDetails();
         return new WalkInDto(opportunity.getId(), opportunity.getTitle(), opportunity.getCompany().getId(),
                 opportunity.getCompany().getCompanyName(), opportunity.getCompany().getLogoUrl(),
@@ -28,8 +36,9 @@ public record WalkInDto(Integer opportunityId, String title, Integer companyId, 
                 opportunity.getMinExperience(), opportunity.getMaxExperience(), opportunity.getMinSalary(),
                 opportunity.getMaxSalary(), opportunity.getCurrencyCode(), drive.getDriveDate(), drive.getStartTime(),
                 drive.getEndTime(), drive.getTimeZoneId(), drive.getDriveStartAtUtc(), drive.getDriveEndAtUtc(),
-                drive.getVenue(), drive.getVenueAddress(), drive.getContactName(), drive.getContactPhone(),
-                drive.getContactEmail(), drive.getInstructions(), drive.getSourceUrl(), opportunity.getStatus(),
+                drive.getVenue(), drive.getVenueAddress(), includeContact ? drive.getContactName() : null,
+                includeContact ? drive.getContactPhone() : null, includeContact ? drive.getContactEmail() : null,
+                includeContact ? drive.getInstructions() : null, drive.getSourceUrl(), opportunity.getStatus(),
                 opportunity.isVerified());
     }
 }

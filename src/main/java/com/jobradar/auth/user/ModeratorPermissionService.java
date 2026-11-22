@@ -26,7 +26,8 @@ public class ModeratorPermissionService {
     @Transactional
     public ModeratorPermissionDto setPermission(Integer userId, boolean enabled, Authentication administrator) {
         if (administrator == null || !administrator.isAuthenticated() || administrator.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority).noneMatch("ROLE_ADMIN"::equals))
+                .map(GrantedAuthority::getAuthority)
+                .noneMatch(role -> "ROLE_ADMIN".equals(role) || "ROLE_SUPER_ADMIN".equals(role)))
             throw new ForbiddenException("Only administrators can manage moderator permissions");
 
         UserEntity user = users.findById(userId)

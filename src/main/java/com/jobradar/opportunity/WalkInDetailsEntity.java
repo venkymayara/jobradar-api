@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "\"WalkInDetails\"")
+@Table(name = "WalkInDetails", schema = "dbo")
 public class WalkInDetailsEntity {
     @Id
     @Column(name = "opportunity_id")

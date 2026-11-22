@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SavedOpportunityRepository extends JpaRepository<SavedOpportunityEntity, SavedOpportunityId> {
+    long countByIdUserId(Integer userId);
     @Query("select s from SavedOpportunityEntity s "
             + "where s.id.userId = :userId and s.opportunity.status = :status")
     @EntityGraph(attributePaths = {"opportunity", "opportunity.company", "opportunity.location", "opportunity.walkInDetails"})

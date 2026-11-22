@@ -32,4 +32,23 @@ For production, set `SPRING_PROFILES_ACTIVE=prod` and provide `DB_URL`, `DB_USER
 No production credentials are stored in this repository. The V1 migration preserves existing users and role assignments, seeds `AppRoles`, adds profile metadata, and creates the refresh token hash table. Existing orphan rows in `user_roles` are retained; the user relationship constraint is added without validating those historical rows.
 
 Authentication endpoints are `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, and `POST /api/v1/auth/logout`. The Angular app first calls `GET /api/v1/auth/csrf`; the XSRF cookie is readable by the app, while the refresh token cookie is HttpOnly. Access tokens are returned in the response body and should remain in application memory.
-# jobradar-api
+
+Sessions last eight hours from sign-in by default. Set `AUTH_SESSION_TTL` to an ISO-8601 duration to configure the maximum lifetime. Refreshing a token preserves the original session deadline.
+## Super Admin
+
+Migration V16 creates the Super Admin role. To designate the first Super Admin, a database operator assigns it to a specific existing account. Use that account’s sign-in ID:
+
+```sql
+DECLARE @username VARCHAR(100) = 'designated-account@example.com';
+
+IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE username = @username)
+    THROW 50000, 'The designated account does not exist.', 1;
+
+INSERT INTO dbo.user_roles (username, role)
+SELECT @username, 'ROLE_SUPER_ADMIN'
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.user_roles WHERE username = @username AND role = 'ROLE_SUPER_ADMIN'
+);
+```
+
+Sign in again to refresh the dashboard permissions. Super Admins can grant and revoke Admin access for other accounts from **Dashboard → User administration**. Each change records the target account, acting account, role, and time in the existing permission history.

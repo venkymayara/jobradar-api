@@ -15,6 +15,7 @@ public interface CompanyRepository extends JpaRepository<CompanyEntity, Integer>
     Page<CompanyEntity> searchAdmin(@Param("search") String search, Pageable pageable);
 
     Optional<CompanyEntity> findByIdAndActiveTrue(Integer id);
+    Optional<CompanyEntity> findByCompanyNameIgnoreCase(String companyName);
     boolean existsByCompanyNameIgnoreCase(String companyName);
     boolean existsByCompanyNameIgnoreCaseAndIdNot(String companyName, Integer id);
 }

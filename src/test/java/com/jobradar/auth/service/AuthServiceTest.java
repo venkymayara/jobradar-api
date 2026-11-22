@@ -41,7 +41,7 @@ class AuthServiceTest {
     private static final Instant NOW = Instant.parse("2026-11-15T00:00:00Z");
     private static final String ENCODED_PASSWORD = "$2a$12$encodedPasswordHash";
     private static final String ACCESS_TOKEN = "signed-access-token";
-    private static final Duration REFRESH_TTL = Duration.ofDays(30);
+    private static final Duration REFRESH_TTL = Duration.ofHours(8);
 
     @Mock private UserRepository userRepository;
     @Mock private AppRoleRepository roleRepository;
@@ -64,7 +64,8 @@ class AuthServiceTest {
         service = new AuthService(userRepository, roleRepository, refreshTokenRepository,
                 passwordEncoder, jwtTokenService, clock, secureRandom, REFRESH_TTL);
         userRole = new AppRoleEntity("ROLE_USER");
-        lenient().when(jwtTokenService.createAccessToken(any(UserEntity.class))).thenReturn(ACCESS_TOKEN);
+        lenient().when(jwtTokenService.createAccessToken(any(UserEntity.class), any(Instant.class), any(Instant.class)))
+                .thenReturn(ACCESS_TOKEN);
         lenient().when(jwtTokenService.accessTokenExpiresInSeconds()).thenReturn(900L);
     }
 
@@ -122,6 +123,7 @@ class AuthServiceTest {
 
         assertThat(issued.session().accessToken()).isEqualTo(ACCESS_TOKEN);
         assertThat(issued.session().tokenType()).isEqualTo("Bearer");
+        assertThat(issued.session().sessionExpiresIn()).isEqualTo(REFRESH_TTL.toSeconds());
         assertThat(issued.session().user().roles()).containsExactly("ROLE_USER");
         assertThat(issued.refreshToken()).isNotBlank();
         ArgumentCaptor<RefreshTokenEntity> tokenCaptor = ArgumentCaptor.forClass(RefreshTokenEntity.class);
@@ -161,6 +163,27 @@ class AuthServiceTest {
         verify(refreshTokenRepository).saveAndFlush(tokenCaptor.capture());
         assertThat(tokenCaptor.getValue().getTokenHash()).hasSize(64).isNotEqualTo(rotated.refreshToken());
         assertThat(tokenCaptor.getValue().getTokenFamilyId()).isEqualTo(familyId);
+        assertThat(tokenCaptor.getValue().getExpiresAt()).isEqualTo(oldToken.getExpiresAt());
+        assertThat(rotated.refreshTokenTtl()).isEqualTo(Duration.ofSeconds(30));
+        assertThat(rotated.session().expiresIn()).isEqualTo(30);
+        assertThat(rotated.session().sessionExpiresIn()).isEqualTo(30);
+        verify(jwtTokenService).createAccessToken(user, NOW, NOW.plusSeconds(30));
+    }
+
+    @Test
+    void legacySlidingTokenExpiresFromTheOriginalSignIn() {
+        UUID familyId = UUID.randomUUID();
+        RefreshTokenEntity token = new RefreshTokenEntity(user("person@example.com"),
+                AuthService.hashToken("legacy"), familyId, NOW.minusSeconds(60), NOW.plus(Duration.ofDays(29)));
+        when(refreshTokenRepository.findForUpdateByHash(AuthService.hashToken("legacy")))
+                .thenReturn(Optional.of(token));
+        when(refreshTokenRepository.findFamilyStartedAt(5, familyId)).thenReturn(NOW.minus(Duration.ofHours(9)));
+
+        assertThatThrownBy(() -> service.refresh("legacy"))
+                .isInstanceOf(UnauthorizedException.class)
+                .hasMessage("Refresh token is invalid or expired");
+        verify(refreshTokenRepository).revokeActiveFamily(familyId, NOW);
+        verify(refreshTokenRepository, never()).saveAndFlush(any(RefreshTokenEntity.class));
     }
 
     @Test

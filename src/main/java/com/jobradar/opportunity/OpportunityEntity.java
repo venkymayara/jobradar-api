@@ -15,7 +15,7 @@ import java.util.Set;
 import org.hibernate.annotations.BatchSize;
 
 @Entity
-@Table(name = "\"Opportunities\"")
+@Table(name = "Opportunities", schema = "dbo")
 @BatchSize(size = 32)
 public class OpportunityEntity extends AuditedEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,11 +59,11 @@ public class OpportunityEntity extends AuditedEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "created_by_user_id", nullable = false)
     private UserEntity publisher;
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "\"OpportunityRoles\"", joinColumns = @JoinColumn(name = "opportunity_id"), inverseJoinColumns = @JoinColumn(name = "job_role_id"))
+    @JoinTable(name = "OpportunityRoles", schema = "dbo", joinColumns = @JoinColumn(name = "opportunity_id"), inverseJoinColumns = @JoinColumn(name = "job_role_id"))
     @BatchSize(size = 32)
     private Set<RoleEntity> roles = new LinkedHashSet<>();
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "\"OpportunitySkills\"", joinColumns = @JoinColumn(name = "opportunity_id"), inverseJoinColumns = @JoinColumn(name = "skill_id"))
+    @JoinTable(name = "OpportunitySkills", schema = "dbo", joinColumns = @JoinColumn(name = "opportunity_id"), inverseJoinColumns = @JoinColumn(name = "skill_id"))
     @BatchSize(size = 32)
     private Set<SkillEntity> skills = new LinkedHashSet<>();
     @OneToOne(mappedBy = "opportunity", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)

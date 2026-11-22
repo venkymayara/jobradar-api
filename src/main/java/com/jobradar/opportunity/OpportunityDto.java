@@ -18,9 +18,23 @@ public record OpportunityDto(Integer opportunityId, String title, Integer compan
         String contactPhone, String contactEmail, String instructions,
         Instant publishedAt, OpportunityStatus status, boolean verified,
         List<OpportunityReferenceDto> roles, List<OpportunityReferenceDto> skills,
-        List<OpportunityStatusHistoryDto> statusHistory) {
+        List<OpportunityStatusHistoryDto> statusHistory, boolean canRespond) {
 
     public static OpportunityDto from(OpportunityEntity entity, List<OpportunityStatusHistoryDto> history) {
+        return from(entity, history, true, false);
+    }
+
+    static OpportunityDto detail(OpportunityEntity entity, List<OpportunityStatusHistoryDto> history,
+            boolean canRespond) {
+        return from(entity, history, true, canRespond);
+    }
+
+    static OpportunityDto publicPreview(OpportunityEntity entity) {
+        return from(entity, List.of(), false, false);
+    }
+
+    private static OpportunityDto from(OpportunityEntity entity, List<OpportunityStatusHistoryDto> history,
+            boolean includeContact, boolean canRespond) {
         List<OpportunityReferenceDto> roles = entity.getRoles().stream()
                 .map(role -> new OpportunityReferenceDto(role.getId(), role.getRoleName(), role.getSlug()))
                 .sorted(java.util.Comparator.comparing(OpportunityReferenceDto::name)).toList();
@@ -41,9 +55,11 @@ public record OpportunityDto(Integer opportunityId, String title, Integer compan
                 walkIn == null ? null : walkIn.getEndTime(), walkIn == null ? null : walkIn.getVenue(),
                 walkIn == null ? null : walkIn.getVenueAddress(), walkIn == null ? null : walkIn.getTimeZoneId(),
                 walkIn == null ? null : walkIn.getDriveStartAtUtc(), walkIn == null ? null : walkIn.getDriveEndAtUtc(),
-                walkIn == null ? null : walkIn.getContactName(), walkIn == null ? null : walkIn.getContactPhone(),
-                walkIn == null ? null : walkIn.getContactEmail(), walkIn == null ? null : walkIn.getInstructions(),
+                walkIn == null || !includeContact ? null : walkIn.getContactName(),
+                walkIn == null || !includeContact ? null : walkIn.getContactPhone(),
+                walkIn == null || !includeContact ? null : walkIn.getContactEmail(),
+                walkIn == null || !includeContact ? null : walkIn.getInstructions(),
                 entity.getPublishedAt(), entity.getStatus(), entity.isVerified(),
-                roles, skills, history);
+                roles, skills, history, canRespond);
     }
 }

@@ -49,10 +49,10 @@ public class WalkInService {
         return search(upcoming, pagination);
     }
 
-    public List<WalkInDto> upcomingForHomepage() {
+    public List<WalkInDto> upcomingForHomepage(LocalDate today, Instant now) {
         return opportunities.findUpcomingWalkInsForHomepage(OpportunityStatus.ACTIVE, OpportunityType.WALK_IN,
-                        clock.instant(), PageRequest.of(0, 6))
-                .stream().map(WalkInDto::from).toList();
+                        today, now, PageRequest.of(0, 6))
+                .stream().map(WalkInDto::publicPreview).toList();
     }
 
     public PaginatedResponse<WalkInDto> today(WalkInFilters filters, PaginationParameters pagination) {
@@ -83,7 +83,7 @@ public class WalkInService {
                 : Sort.Direction.fromString(pagination.getDirection());
         Pageable responsePageable = PageRequest.of(pagination.getPage(), pagination.getSize(), Sort.by(direction, sortProperty));
 
-        OpportunitySearchCriteria criteria = new OpportunitySearchCriteria(clean(filters.keyword()), clean(filters.role()),
+        OpportunitySearchCriteria criteria = new OpportunitySearchCriteria(clean(filters.keyword()), clean(filters.role()), null,
                 filters.skills() == null ? List.of() : filters.skills().stream().filter(s -> s != null && !s.isBlank()).map(String::trim).distinct().toList(),
                 clean(filters.company()), clean(filters.location()), filters.minExperience(), filters.maxExperience(),
                 null, null, OpportunityType.WALK_IN, filters.minSalary(), filters.maxSalary(), null,

@@ -64,11 +64,14 @@ class OpportunityServiceTest {
     }
 
     @Test void latestUsesOnlyActiveOpportunitiesAndNoUnboundedPage() {
-        when(opportunities.findTop10ByStatusOrderByPublishedAtDesc(OpportunityStatus.ACTIVE)).thenReturn(List.of());
+        var now = java.time.Instant.parse("2026-11-22T12:00:00Z");
+        var today = java.time.LocalDate.of(2026, 11, 22);
+        var limit = PageRequest.of(0, 10);
+        when(opportunities.findLatestPublic(OpportunityStatus.ACTIVE, today, now, limit)).thenReturn(List.of());
 
-        assertTrue(service.latest().isEmpty());
+        assertTrue(service.latest(today, now).isEmpty());
 
-        verify(opportunities).findTop10ByStatusOrderByPublishedAtDesc(OpportunityStatus.ACTIVE);
+        verify(opportunities).findLatestPublic(OpportunityStatus.ACTIVE, today, now, limit);
     }
 
     @Test void communitySubmissionStartsPendingAndUnverifiedAndRecordsHistory() {
@@ -89,7 +92,7 @@ class OpportunityServiceTest {
         when(location.getId()).thenReturn(20); when(location.getCity()).thenReturn("Bengaluru");
         when(location.getState()).thenReturn("Karnataka"); when(location.getCountry()).thenReturn("India");
         when(opportunities.save(any(OpportunityEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(history.findByOpportunityIdOrderByChangedAtAsc(null)).thenReturn(List.of());
+        when(history.findByOpportunityIdOrderByChangedAtAscIdAsc(null)).thenReturn(List.of());
         var response = service.create(request, "owner@example.com");
         assertEquals(OpportunityStatus.PENDING, response.status());
         assertFalse(response.verified());
@@ -105,7 +108,7 @@ class OpportunityServiceTest {
         OpportunityEntity active = new OpportunityEntity(request(), mock(CompanyEntity.class), mock(LocationEntity.class),
                 publisher, Set.of(), Set.of(), OpportunityStatus.ACTIVE);
         when(opportunities.findById(9)).thenReturn(Optional.of(active));
-        when(history.findByOpportunityIdOrderByChangedAtAsc(null)).thenReturn(List.of());
+        when(history.findByOpportunityIdOrderByChangedAtAscIdAsc(null)).thenReturn(List.of());
         var user = new UsernamePasswordAuthenticationToken("owner@example.com", "", List.of(new SimpleGrantedAuthority("ROLE_USER")));
         var paused = service.changeStatus(9, OpportunityStatus.PAUSED, user);
         assertEquals(OpportunityStatus.PAUSED, paused.status());
@@ -135,7 +138,7 @@ class OpportunityServiceTest {
                 Set.of(), Set.of(), OpportunityStatus.PENDING);
         when(opportunities.findById(15)).thenReturn(Optional.of(pending));
         when(users.findByEmailIgnoreCase("moderator@example.com")).thenReturn(Optional.empty());
-        when(history.findByOpportunityIdOrderByChangedAtAsc(null)).thenReturn(List.of());
+        when(history.findByOpportunityIdOrderByChangedAtAscIdAsc(null)).thenReturn(List.of());
         var moderator = new UsernamePasswordAuthenticationToken("moderator@example.com", "",
                 List.of(new SimpleGrantedAuthority("ROLE_MODERATOR")));
 
@@ -153,7 +156,7 @@ class OpportunityServiceTest {
         OpportunityEntity active = new OpportunityEntity(request(), mock(CompanyEntity.class), mock(LocationEntity.class),
                 publisher, Set.of(), Set.of(), OpportunityStatus.ACTIVE);
         when(opportunities.findById(18)).thenReturn(Optional.of(active));
-        when(history.findByOpportunityIdOrderByChangedAtAsc(null)).thenReturn(List.of());
+        when(history.findByOpportunityIdOrderByChangedAtAscIdAsc(null)).thenReturn(List.of());
         var admin = new UsernamePasswordAuthenticationToken("admin@example.com", "",
                 List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
 
@@ -170,7 +173,7 @@ class OpportunityServiceTest {
         OpportunityEntity active = new OpportunityEntity(request(), mock(CompanyEntity.class), mock(LocationEntity.class),
                 publisher, Set.of(), Set.of(), OpportunityStatus.ACTIVE);
         when(opportunities.findById(16)).thenReturn(Optional.of(active));
-        when(history.findByOpportunityIdOrderByChangedAtAsc(null)).thenReturn(List.of());
+        when(history.findByOpportunityIdOrderByChangedAtAscIdAsc(null)).thenReturn(List.of());
         var moderator = new UsernamePasswordAuthenticationToken("moderator@example.com", "",
                 List.of(new SimpleGrantedAuthority("ROLE_MODERATOR")));
         var user = new UsernamePasswordAuthenticationToken("user@example.com", "",
